@@ -251,7 +251,7 @@ public class RestRequest {
 
         Boolean successState = false;
         HttpClientBuilder httpBuilder = getBuilder();
-        url = url + "/change-lifecycle?apiId=" + apiId + "&action=Publish";
+        url = url + "/change-lifecycle?action=Publish&apiId=" + apiId;
 
         try (CloseableHttpClient httpClient = httpBuilder.build()) {
             HttpPost httpPost = new HttpPost(url);

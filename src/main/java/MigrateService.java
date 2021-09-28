@@ -317,6 +317,9 @@ public class MigrateService {
 
                             }
                         }
+                        if ((apiData != null) && apiData.containsKey("enableStore")) {
+                            apiData.put("enableStore", true);
+                        }
                         if ((apiData != null) && apiData.containsKey("gatewayEnvironments")) {
 
                             apiData.put("gatewayEnvironments", gatewayEnvironments);

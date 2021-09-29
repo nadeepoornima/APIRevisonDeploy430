@@ -1,6 +1,8 @@
 package utilities;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 
 public class DBConnection {
     private static String dbhost = "jdbc:mysql://localhost:3306/school_db";
@@ -16,6 +18,7 @@ public class DBConnection {
         password = configs.getProperty("CONNECTION.PASSWORD");
 
         try {
+            Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
             conn = DriverManager.getConnection(
                     dbhost, username, password);
         } catch (SQLException e) {

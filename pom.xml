@@ -68,6 +68,14 @@
                 <enabled>false</enabled>
             </releases>
         </repository>
+            <repository>
+                <id>tibjms</id>
+                <name>WSO2 internal Repository</name>
+                <url> https://mvnrepository.com/artifact/</url>
+
+            </repository>
+
+
     </repositories>
     <build>
         <plugins>
@@ -108,6 +116,6 @@
 
     </build>
     <properties>
-        <carbon.apimgt.version>6.7.206</carbon.apimgt.version>
+        <carbon.apimgt.version>9.0.174</carbon.apimgt.version>
     </properties>
 </project>

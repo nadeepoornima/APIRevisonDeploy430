@@ -9,8 +9,5 @@
         <module name="Migration-Client" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="Migration-Client" target="1.8" />
-    </bytecodeTargetLevel>
   </component>
 </project>

@@ -41,42 +41,6 @@ public class RestRequest {
     static String KEY_STORE_PATH = "client-truststore.jks";
     static String KEY_STORE_PASSWORD = "wso2carbon";
 
-    public static JSONObject getOauthClientDetails(
-            String kmDcrUrl, String clientID, String userName, String password, Boolean isResident) {
-
-            String URL = kmDcrUrl + "/" + clientID;
-            JSONObject responseJson =  new JSONObject();
-        HttpClientBuilder httpBuilder = getBuilder();
-
-            try (CloseableHttpClient httpClient = httpBuilder.build()) {
-                HttpGet httpget = new HttpGet(URL);
-                String credentials = Base64.getEncoder().encodeToString((userName + ":" + password).getBytes());
-                httpget.addHeader(HttpHeaders.AUTHORIZATION, "Basic " + credentials);
-                if (isResident) {
-                    httpget.addHeader("X-WSO2-Tenant", "carbon.super");
-                }
-                try (CloseableHttpResponse response = httpClient.execute(httpget)) {
-                    HttpEntity entity = response.getEntity();
-                    String responseString = EntityUtils.toString(entity);
-                    if (entity != null && response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-                        JSONParser parser = new JSONParser();
-                        responseJson = (JSONObject) parser.parse(responseString);
-                    } else if (entity != null && response.getStatusLine().getStatusCode() == HttpStatus.SC_BAD_REQUEST) {
-                        JSONParser parser = new JSONParser();
-                        responseJson = (JSONObject) parser.parse(responseString);
-                    } else {
-                        System.out.println(" ISSUE : Error in getOauthClientDetails REST request ... " + URL);
-                    }
-                    EntityUtils.consume(entity);
-                } catch (ParseException e) {
-                    e.printStackTrace();
-                }
-            } catch (IOException ex) {
-                ex.printStackTrace();
-            }
-        return responseJson;
-    }
-
     public static ArrayList<JSONObject> getAPIList(String url, String accessToken) {
 
         ArrayList<JSONObject> apiDetailsList = null;
@@ -116,15 +80,16 @@ public class RestRequest {
             HttpPost httpPost = new HttpPost(url);
             httpPost.addHeader(HttpHeaders.AUTHORIZATION, "Basic " + credentials);
 
-            String jsonPayload="{\"client_name\": \"migration_client_app\"," +
-                    "\"grant_types\": [\"refresh_token\",\"password\",\"client_credentials\"]," +
-                    "\"ext_application_owner\": \"admin\",\"ext_user_token_lifetime\": \"43200\"}";
+            String jsonPayload="{\"clientName\": \"migration_client_app4\"," + "\"callbackUrl\": \"www.google.lk\"," +
+                    "\"grantType\": \"refresh_token password client_credentials\"," +
+                    "\"owner\": \""+username+"\",\"saasApp\": true}";
+
             HttpEntity stringEntity = new StringEntity(jsonPayload, ContentType.APPLICATION_JSON);
             httpPost.setEntity(stringEntity);
             CloseableHttpResponse response = httpClient.execute(httpPost);
             HttpEntity entity = response.getEntity();
             String responseString = EntityUtils.toString(entity);
-            if (entity != null && response.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED) {
+            if (entity != null && response.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED || response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
                 JSONParser parser = new JSONParser();
                 clientDetails = (JSONObject) parser.parse(responseString);
             } else {
@@ -185,7 +150,7 @@ public class RestRequest {
             if (response.getStatusLine().getStatusCode() == HttpStatus.SC_NO_CONTENT) {
                 successStatus = true;
             } else {
-                System.out.println(" ISSUE : Error in deleteClient REST request ... " + url);
+                System.out.println(" ISSUE : Error in deleteClient REST request ... " + response.getStatusLine().getStatusCode());
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -193,65 +158,12 @@ public class RestRequest {
         return successStatus;
     }
 
-    public static JSONObject getApiDetails(String url, String accessToken, String apiId) {
 
-        JSONObject apiDetails = null;
-        HttpClientBuilder httpBuilder = getBuilder();
-        url = url + "/" + apiId;
-
-        try (CloseableHttpClient httpClient = httpBuilder.build()) {
-            HttpGet httpget = new HttpGet(url);
-            httpget.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
-            CloseableHttpResponse response = httpClient.execute(httpget);
-            HttpEntity entity = response.getEntity();
-            String responseString = EntityUtils.toString(entity);
-            if (entity != null && response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-                JSONParser parser = new JSONParser();
-                 apiDetails = (JSONObject) parser.parse(responseString);
-            } else {
-                System.out.println(" ISSUE : Error in getApiDetails REST request ... " + url +
-                        "  response : " + responseString);
-            }
-            EntityUtils.consume(entity);
-        } catch (IOException | ParseException e) {
-            e.printStackTrace();
-        }
-        return apiDetails;
-    }
-
-
-
-    public static Boolean updateApi(String url, String accessToken, String apiId, String apiData) {
+    public static Boolean blockApi(String url, String accessToken, String apiId) {
 
         Boolean successState = false;
         HttpClientBuilder httpBuilder = getBuilder();
-        url = url + "/" + apiId;
-
-        try (CloseableHttpClient httpClient = httpBuilder.build()) {
-            HttpPut httpPut = new HttpPut(url);
-            httpPut.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
-            HttpEntity stringEntity = new StringEntity(apiData, ContentType.APPLICATION_JSON);
-            httpPut.setEntity(stringEntity);
-            CloseableHttpResponse response = httpClient.execute(httpPut);
-            HttpEntity entity = response.getEntity();
-            String responseString = EntityUtils.toString(entity);
-            if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-                successState = true;
-            } else {
-                System.out.println(" ISSUE : Error in updateApi REST request ... response : " + responseString);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        return successState;
-    }
-
-
-    public static Boolean reDeployApi(String url, String accessToken, String apiId) {
-
-        Boolean successState = false;
-        HttpClientBuilder httpBuilder = getBuilder();
-        url = url + "/change-lifecycle?action=Publish&apiId=" + apiId;
+        url = url + "/change-lifecycle?action=Block&apiId=" + apiId;
 
         try (CloseableHttpClient httpClient = httpBuilder.build()) {
             HttpPost httpPost = new HttpPost(url);
@@ -262,10 +174,35 @@ public class RestRequest {
             if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
                 successState = true;
             } else {
-                System.out.println(" ISSUE : Error in reDeployApi REST request ... response : " + responseString);
+                System.out.println(" ISSUE : Error when blocking api with Id " +apiId+ " response : " + responseString);
             }
         } catch (IOException e) {
             e.printStackTrace();
+        }
+        return successState;
+    }
+
+    public static Boolean reDeployApi(String url, String accessToken, String apiId) {
+        Boolean successState = false;
+        if ( blockApi(url,accessToken,apiId) ) {
+            HttpClientBuilder httpBuilder = getBuilder();
+            url = url + "/change-lifecycle?action=Re-Publish&apiId=" + apiId;
+
+            try (CloseableHttpClient httpClient = httpBuilder.build()) {
+                HttpPost httpPost = new HttpPost(url);
+                httpPost.addHeader(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken);
+                CloseableHttpResponse response = httpClient.execute(httpPost);
+                HttpEntity entity = response.getEntity();
+                String responseString = EntityUtils.toString(entity);
+                if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+                    successState = true;
+                } else {
+                    System.out.println(" ISSUE : Error when Re-publishing api with Id " +apiId+ " response : " + responseString);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
         }
         return successState;
     }

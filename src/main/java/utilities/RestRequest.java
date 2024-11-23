@@ -9,7 +9,7 @@ import org.apache.http.config.RegistryBuilder;
 import org.apache.http.conn.HttpClientConnectionManager;
 import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
-import org.apache.http.conn.ssl.*;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -28,217 +28,228 @@ import java.io.InputStream;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.util.ArrayList;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class RestRequest {
 
-    static String KEY_STORE_PATH = "client-truststore.jks";
-    static String KEY_STORE_PASSWORD = "wso2carbon";
+    private static final Logger LOGGER = Logger.getLogger(RestRequest.class.getName());
+    private static String KEY_STORE_PATH = "client-truststore.jks";
+    private static String KEY_STORE_PASSWORD = "wso2carbon";
 
-    //completed
     public static ArrayList<JSONObject> getAPIList(String url, String accessToken) {
-
-        ArrayList<JSONObject> apiDetailsList = null;
+        ArrayList<JSONObject> apiDetailsList = new ArrayList<>();
         HttpClientBuilder httpBuilder = getBuilder();
         url = url + "?limit=700";
 
         try (CloseableHttpClient httpClient = httpBuilder.build()) {
-            HttpGet httpget = new HttpGet(url);
-            httpget.addHeader(HttpHeaders.AUTHORIZATION, "Basic " + accessToken);
-            CloseableHttpResponse response = httpClient.execute(httpget);
-            HttpEntity entity = response.getEntity();
-            String responseString = EntityUtils.toString(entity);
-            if (entity != null && response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-                JSONParser parser = new JSONParser();
-                JSONObject responseJson = (JSONObject) parser.parse(responseString);
-                if (responseJson.get("list") instanceof ArrayList) {
-                    apiDetailsList = (ArrayList<JSONObject>) responseJson.get("list");
-                }
-            } else {
-                System.out.println("***** ERROR : Error in getAPIList REST request ... " + url + " Response : " + responseString);
+            HttpGet httpGet = new HttpGet(url);
+            httpGet.addHeader(HttpHeaders.AUTHORIZATION, "Basic " + accessToken);
+
+            try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
+                handleResponse(response, apiDetailsList);
             }
-            EntityUtils.consume(entity);
+
         } catch (IOException | ParseException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Error during getAPIList for URL: " + url, e);
         }
+
         return apiDetailsList;
     }
 
-    //completed
-    public static JSONObject getAPIDetailsByApiId(String url, String accessToken, String apiid) {
+    private static void handleResponse(CloseableHttpResponse response, ArrayList<JSONObject> apiDetailsList) throws IOException, ParseException {
+        HttpEntity entity = response.getEntity();
+        String responseString = EntityUtils.toString(entity);
+        try {
+            // deploy revision gives 201
+            if (entity != null && response.getStatusLine().getStatusCode() == HttpStatus.SC_OK || response.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED ) {
+                JSONParser parser = new JSONParser();
+                Object parsedResponse = parser.parse(responseString);
+                // this if handles getAPIList , getRevisionListByApiId , deleteRevision
+                if (parsedResponse instanceof JSONObject) {
+                    JSONObject responseJson = (JSONObject) parser.parse(responseString);
+                    if (responseJson.get("list") instanceof ArrayList) {
+                        apiDetailsList.addAll((ArrayList<JSONObject>) responseJson.get("list"));
+                    }
+                // this handles deployRevision
+                } else if (parsedResponse instanceof ArrayList) {
+                    apiDetailsList.addAll((ArrayList<JSONObject>)parsedResponse);
+                } else {
+                    LOGGER.log(Level.WARNING, "Unexpected JSON response type.");
+                }
+            } else {
+                LOGGER.log(Level.WARNING, "Unexpected response for getAPIList: " +
+                        response.getStatusLine() + ", Response: " + responseString);
+            }
+        } finally {
+            EntityUtils.consume(entity); // Ensure the entity is fully consumed
+        }
+    }
 
+    public static JSONObject getAPIDetailsByApiId(String url, String accessToken, String apiId) {
         JSONObject apiDetails = null;
         HttpClientBuilder httpBuilder = getBuilder();
-        url = url + "/" + apiid;
+        url = url + "/" + apiId;
 
         try (CloseableHttpClient httpClient = httpBuilder.build()) {
-            HttpGet httpget = new HttpGet(url);
-            httpget.addHeader(HttpHeaders.AUTHORIZATION, "Basic " + accessToken);
-            CloseableHttpResponse response = httpClient.execute(httpget);
-            HttpEntity entity = response.getEntity();
-            String responseString = EntityUtils.toString(entity);
-            if (entity != null && response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-                JSONParser parser = new JSONParser();
-                apiDetails = (JSONObject) parser.parse(responseString);
-            } else {
-                System.out.println("***** ERROR : Error in getAPIDetails REST request ... " + url + " Response : " + responseString);
+            HttpGet httpGet = new HttpGet(url);
+            httpGet.addHeader(HttpHeaders.AUTHORIZATION, "Basic " + accessToken);
+
+            try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
+                apiDetails = handleSingleResponse(response);
             }
-            EntityUtils.consume(entity);
+
         } catch (IOException | ParseException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Error during getAPIDetailsByApiId for API ID: " + apiId, e);
         }
+
         return apiDetails;
     }
 
-    //completed
-    public static boolean updateApi(String url, String accessToken, String apiid, JSONObject apiDetailsByApiId) {
+    private static JSONObject handleSingleResponse(CloseableHttpResponse response) throws IOException, ParseException {
+        HttpEntity entity = response.getEntity();
+        String responseString = EntityUtils.toString(entity);
+        JSONObject result = null;
 
+        try {
+            // createRevision gives 201
+            if (entity != null && response.getStatusLine().getStatusCode() == HttpStatus.SC_OK || response.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED) {
+                JSONParser parser = new JSONParser();
+                result = (JSONObject) parser.parse(responseString);
+            } else {
+                LOGGER.log(Level.WARNING, "Unexpected response for API details: " +
+                        response.getStatusLine() + ", Response: " + responseString);
+            }
+        } finally {
+            EntityUtils.consume(entity);
+        }
+
+        return result;
+    }
+
+    public static boolean updateApi(String url, String accessToken, String apiId, JSONObject apiDetailsByApiId) {
         HttpClientBuilder httpBuilder = getBuilder();
-        url = url + "/" + apiid;
+        url = url + "/" + apiId;
 
         try (CloseableHttpClient httpClient = httpBuilder.build()) {
             HttpPut httpPut = new HttpPut(url);
             httpPut.addHeader(HttpHeaders.AUTHORIZATION, "Basic " + accessToken);
-            httpPut.addHeader("Content-Type", "application/json");
-            //set payload
-            StringEntity entity = new StringEntity(apiDetailsByApiId.toJSONString(), "UTF-8");
-            httpPut.setEntity(entity);
+            httpPut.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+            httpPut.setEntity(new StringEntity(apiDetailsByApiId.toJSONString(), "UTF-8"));
+
             try (CloseableHttpResponse response = httpClient.execute(httpPut)) {
-                // Handle the response
-                int statusCode = response.getStatusLine().getStatusCode();
-                String responseBody = EntityUtils.toString(response.getEntity(), "UTF-8");
-                if (statusCode == 200) {
-                    System.out.println("***** API updated successfully...");
-                    return true;
-                } else {
-                    System.out.println("***** Failed to update API. HTTP Status: " + statusCode);
-                    System.out.println("***** Response: " + responseBody);
-                    return false;
-                }
+                return handleUpdateResponse(response);
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Error updating API ID: " + apiId, e);
         }
+
         return false;
     }
 
-    // completed
-    public static ArrayList<JSONObject> getRevisionListByApiId(String url, String accessToken, String apiid) {
+    private static boolean handleUpdateResponse(CloseableHttpResponse response) throws IOException {
+        HttpEntity entity = response.getEntity();
+        String responseBody = EntityUtils.toString(entity, "UTF-8");
 
-        ArrayList<JSONObject> revisionDetails = null;
+        try {
+            int statusCode = response.getStatusLine().getStatusCode();
+            if (statusCode == HttpStatus.SC_OK) {
+                LOGGER.log(Level.INFO, "API updated successfully.");
+                return true;
+            } else {
+                LOGGER.log(Level.WARNING, "Failed to update API. Status: " + statusCode + ", Response: " + responseBody);
+                return false;
+            }
+        } finally {
+            EntityUtils.consume(entity);
+        }
+    }
+
+    // Similar updates to other methods (getRevisionListByApiId, createRevision, deployRevision, deleteRevision)
+    public static ArrayList<JSONObject> getRevisionListByApiId(String url, String accessToken, String apiId) {
+        ArrayList<JSONObject> revisionDetails = new ArrayList<>();
         HttpClientBuilder httpBuilder = getBuilder();
-        url = url + "/" + apiid + "/revisions";
+        url = url + "/" + apiId + "/revisions";
 
         try (CloseableHttpClient httpClient = httpBuilder.build()) {
-            HttpGet httpget = new HttpGet(url);
-            httpget.addHeader(HttpHeaders.AUTHORIZATION, "Basic " + accessToken);
-            CloseableHttpResponse response = httpClient.execute(httpget);
-            HttpEntity entity = response.getEntity();
-            String responseString = EntityUtils.toString(entity);
-            if (entity != null && response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-                JSONParser parser = new JSONParser();
-                JSONObject responseJson = (JSONObject) parser.parse(responseString);
-                if (responseJson.get("list") instanceof ArrayList) {
-                    revisionDetails = (ArrayList<JSONObject>) responseJson.get("list");
-                }
-            } else {
-                System.out.println("***** ERROR : Error in getRevisionListByApiId REST request ... " + url + " Response : " + responseString);
+            HttpGet httpGet = new HttpGet(url);
+            httpGet.addHeader(HttpHeaders.AUTHORIZATION, "Basic " + accessToken);
+
+            try (CloseableHttpResponse response = httpClient.execute(httpGet)) {
+                handleResponse(response, revisionDetails);
             }
-            EntityUtils.consume(entity);
+
         } catch (IOException | ParseException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Error retrieving revisions for API ID: " + apiId, e);
         }
+
         return revisionDetails;
     }
 
-    //completed
-    public static JSONObject createRevision(String url, String accessToken, String apiid) {
-
+    public static JSONObject createRevision(String url, String accessToken, String apiId) {
         JSONObject newRevisionDetails = null;
         HttpClientBuilder httpBuilder = getBuilder();
-        url = url + "/" + apiid + "/revisions";
+        url = url + "/" + apiId + "/revisions";
 
         try (CloseableHttpClient httpClient = httpBuilder.build()) {
             HttpPost httpPost = new HttpPost(url);
             httpPost.addHeader(HttpHeaders.AUTHORIZATION, "Basic " + accessToken);
-            //set payload
-            String jsonPayload = "{\"description\":\"added visibility restriction\"}";
-            HttpEntity stringEntity = new StringEntity(jsonPayload, ContentType.APPLICATION_JSON);
-            httpPost.setEntity(stringEntity);
-            CloseableHttpResponse response = httpClient.execute(httpPost);
-            HttpEntity entity = response.getEntity();
-            String responseString = EntityUtils.toString(entity);
-            if (entity != null && response.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED || response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-                JSONParser parser = new JSONParser();
-                newRevisionDetails = (JSONObject) parser.parse(responseString);
-            } else {
-                System.out.println("***** Error : Error in createRevision REST request ... " + url + " Response : " + responseString);
+            httpPost.setEntity(new StringEntity("{\"description\":\"added visibility restriction\"}", ContentType.APPLICATION_JSON));
+
+            try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
+                newRevisionDetails = handleSingleResponse(response);
             }
-            EntityUtils.consume(entity);
+
         } catch (IOException | ParseException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Error creating revision for API ID: " + apiId, e);
         }
+
         return newRevisionDetails;
     }
 
-    //completed
-    public static ArrayList<JSONObject> deployRevision(String url, String accessToken, String apiid, String revisionid, ArrayList<JSONObject> deployRevisionPayload) {
-
-        ArrayList<JSONObject> newDeployedRevisionDetails = null;
+    public static ArrayList<JSONObject> deployRevision(String url, String accessToken, String apiId, String revisionId, ArrayList<JSONObject> deployRevisionPayload) {
+        ArrayList<JSONObject> deployedRevisionDetails = new ArrayList<>();
         HttpClientBuilder httpBuilder = getBuilder();
-        url = url + "/" + apiid + "/deploy-revision?revisionId=" + revisionid;
+        url = url + "/" + apiId + "/deploy-revision?revisionId=" + revisionId;
 
         try (CloseableHttpClient httpClient = httpBuilder.build()) {
             HttpPost httpPost = new HttpPost(url);
             httpPost.addHeader(HttpHeaders.AUTHORIZATION, "Basic " + accessToken);
-            //set payload
-            String jsonPayload = deployRevisionPayload.toString();
-            HttpEntity stringEntity = new StringEntity(jsonPayload, ContentType.APPLICATION_JSON);
-            httpPost.setEntity(stringEntity);
-            CloseableHttpResponse response = httpClient.execute(httpPost);
-            HttpEntity entity = response.getEntity();
-            String responseString = EntityUtils.toString(entity);
-            if (entity != null && ( response.getStatusLine().getStatusCode() == HttpStatus.SC_OK || response.getStatusLine().getStatusCode() == HttpStatus.SC_CREATED )) {
-                JSONParser parser = new JSONParser();
-                newDeployedRevisionDetails = (ArrayList<JSONObject>) parser.parse(responseString);
-            } else {
-                System.out.println("***** Error : Error in deployRevision REST request ... " + url + " Response : " + responseString);
+            httpPost.setEntity(new StringEntity(deployRevisionPayload.toString(), ContentType.APPLICATION_JSON));
+
+            try (CloseableHttpResponse response = httpClient.execute(httpPost)) {
+                handleResponse(response, deployedRevisionDetails);
             }
-            EntityUtils.consume(entity);
+
         } catch (IOException | ParseException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Error deploying revision for API ID: " + apiId + ", Revision ID: " + revisionId, e);
         }
-        return newDeployedRevisionDetails;
+
+        return deployedRevisionDetails;
     }
 
-    // completed
-    public static ArrayList<JSONObject> deleteRevision(String url, String accessToken, String apiid, String revisionid) {
-
-        ArrayList<JSONObject> remainingRevisionList = null;
+    public static ArrayList<JSONObject> deleteRevision(String url, String accessToken, String apiId, String revisionId) {
+        ArrayList<JSONObject> remainingRevisions = new ArrayList<>();
         HttpClientBuilder httpBuilder = getBuilder();
-        url = url + "/" + apiid + "/revisions/" + revisionid;
+        url = url + "/" + apiId + "/revisions/" + revisionId;
 
         try (CloseableHttpClient httpClient = httpBuilder.build()) {
             HttpDelete httpDelete = new HttpDelete(url);
             httpDelete.addHeader(HttpHeaders.AUTHORIZATION, "Basic " + accessToken);
-            CloseableHttpResponse response = httpClient.execute(httpDelete);
-            HttpEntity entity = response.getEntity();
-            String responseString = EntityUtils.toString(entity);
-            if (entity != null && response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
-                JSONParser parser = new JSONParser();
-                JSONObject responseJson = (JSONObject) parser.parse(responseString);
-                System.out.println("***** Deleted revision with id : "+ revisionid + " of API with id : "+ apiid);
-                if (responseJson.get("list") instanceof ArrayList) {
-                    remainingRevisionList = (ArrayList<JSONObject>) responseJson.get("list");
-                }
-            } else {
-                System.out.println("***** ERROR : Error in getAPIList REST request ... " + url + " Response : " + responseString);
+
+            try (CloseableHttpResponse response = httpClient.execute(httpDelete)) {
+                handleResponse(response, remainingRevisions);
+                LOGGER.log(Level.INFO, "Successfully deleted revision ID: " + revisionId + " for API ID: " + apiId);
             }
-            EntityUtils.consume(entity);
+
         } catch (IOException | ParseException e) {
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Error deleting revision ID: " + revisionId + " for API ID: " + apiId, e);
         }
-        return remainingRevisionList;
+
+        return remainingRevisions;
     }
+
 
     protected static HttpClientBuilder getBuilder() {
         KeyStore keyStore;
@@ -246,40 +257,40 @@ public class RestRequest {
         ReadConfigFile configs = new ReadConfigFile();
         KEY_STORE_PATH = configs.getProperty("TRUSTSTORE.PATH");
         KEY_STORE_PASSWORD = configs.getProperty("TRUSTSTORE.PASSWORD");
+
         try {
             keyStore = KeyStore.getInstance("jks");
-            InputStream keyStoreInput = new FileInputStream(KEY_STORE_PATH);
-            keyStore.load(keyStoreInput, KEY_STORE_PASSWORD.toCharArray());
+            try (InputStream keyStoreInput = new FileInputStream(KEY_STORE_PATH)) {
+                keyStore.load(keyStoreInput, KEY_STORE_PASSWORD.toCharArray());
+            }
 
-            KeyManagerFactory keyManagerFactory =
-                    KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
+            KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
             keyManagerFactory.init(keyStore, KEY_STORE_PASSWORD.toCharArray());
 
-            TrustManagerFactory trustManagerFactory =
-                    TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
+            TrustManagerFactory trustManagerFactory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
             trustManagerFactory.init(keyStore);
 
             SSLContext sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(
-                    keyManagerFactory.getKeyManagers(),
-                    trustManagerFactory.getTrustManagers(),
-                    new SecureRandom());
+            sslContext.init(keyManagerFactory.getKeyManagers(), trustManagerFactory.getTrustManagers(), new SecureRandom());
 
-            httpBuilder = HttpClientBuilder.create();
             SSLConnectionSocketFactory sslConnectionFactory = new SSLConnectionSocketFactory(
                     sslContext, SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);
+
+            httpBuilder = HttpClientBuilder.create();
             httpBuilder.setSSLSocketFactory(sslConnectionFactory);
             Registry<ConnectionSocketFactory> registry = RegistryBuilder.<ConnectionSocketFactory>create()
                     .register("https", sslConnectionFactory)
                     .register("http", new PlainConnectionSocketFactory())
                     .build();
+
             HttpClientConnectionManager ccm = new BasicHttpClientConnectionManager(registry);
             httpBuilder.setConnectionManager(ccm);
-        } catch (KeyStoreException | IOException | CertificateException |
-                 NoSuchAlgorithmException | KeyManagementException | UnrecoverableKeyException e) {
-            e.printStackTrace();
+
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error configuring HttpClientBuilder", e);
         }
+
         return httpBuilder;
     }
-
 }
+

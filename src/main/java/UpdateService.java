@@ -17,8 +17,8 @@ public class UpdateService {
     public static void main(String[] args) {
         ReadConfigFile configs = new ReadConfigFile();
 
-        String residentusername = configs.getProperty("ADMIN.USERNAME");
-        String residentpassword = configs.getProperty("ADMIN.PASSWORD");
+        String adminusername = configs.getProperty("ADMIN.USERNAME");
+        String adminpassword = configs.getProperty("ADMIN.PASSWORD");
         String publisherRestUrl = configs.getProperty("PUBLISHER.REST.URL");
         String visibilityRestrictRole = configs.getProperty("DEVPORTAL.RESTRICTED.ROLE");
         String apiSkipList = configs.getProperty("API.SKIP.LIST");
@@ -28,7 +28,7 @@ public class UpdateService {
         LOGGER.info("***** Starting API Update *****");
 
         // Create Basic accessToken by Encoding admin credentials
-        String accessToken = Base64.getEncoder().encodeToString((residentusername + ":" + residentpassword).getBytes(StandardCharsets.UTF_8));
+        String accessToken = Base64.getEncoder().encodeToString((adminusername + ":" + adminpassword).getBytes(StandardCharsets.UTF_8));
 
         // Get API List by calling /api/am/publisher/v3/apis
         ArrayList<JSONObject> apiDetailsArray = getAPIList(publisherRestUrl, accessToken);

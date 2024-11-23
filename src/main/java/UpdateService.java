@@ -3,6 +3,7 @@ import org.json.simple.JSONObject;
 import utilities.ReadConfigFile;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -16,16 +17,18 @@ public class UpdateService {
     public static void main(String[] args) {
         ReadConfigFile configs = new ReadConfigFile();
 
-        String residentusername = configs.getProperty("ADMIN.USERNAME");
-        String residentpassword = configs.getProperty("ADMIN.PASSWORD");
+        String adminusername = configs.getProperty("ADMIN.USERNAME");
+        String adminpassword = configs.getProperty("ADMIN.PASSWORD");
         String publisherRestUrl = configs.getProperty("PUBLISHER.REST.URL");
         String visibilityRestrictRole = configs.getProperty("DEVPORTAL.RESTRICTED.ROLE");
+        String apiSkipList = configs.getProperty("API.SKIP.LIST");
+        String [] apiSkipListArray = getApiSkipListArray(apiSkipList);
         long sleepTime = Long.parseLong(configs.getProperty("API.REDEPLOY.THREAD.SLEEP.TIME"));
 
         LOGGER.info("***** Starting API Update *****");
 
         // Create Basic accessToken by Encoding admin credentials
-        String accessToken = Base64.getEncoder().encodeToString((residentusername + ":" + residentpassword).getBytes(StandardCharsets.UTF_8));
+        String accessToken = Base64.getEncoder().encodeToString((adminusername + ":" + adminpassword).getBytes(StandardCharsets.UTF_8));
 
         // Get API List by calling /api/am/publisher/v3/apis
         ArrayList<JSONObject> apiDetailsArray = getAPIList(publisherRestUrl, accessToken);
@@ -43,6 +46,13 @@ public class UpdateService {
                 String apiVersion = (String) apiDetails.get("version");
                 String apiStatus = (String) apiDetails.get("lifeCycleStatus");
 
+                // If defined in apiSkipList skip this API
+                if (Arrays.asList(apiSkipListArray).contains(apiId)) {
+                    LOGGER.info("***** API : " + apiName + "|" + apiContext + "|" + apiVersion + " is defined in APISkipList. Hence Skipping this API ");
+                    LOGGER.info("***** Finished Processing API with Id : " + apiId);
+                    LOGGER.info("");
+                    continue;
+                }
                 // We only update the APIs which are in published state
                 if (!apiStatus.equalsIgnoreCase("published")) {
                     LOGGER.info("***** API : " + apiName + "|" + apiContext + "|" + apiVersion + " is Not in PUBLISHED State. Currently in state: " + apiStatus + " - Skipping this API.");
@@ -145,6 +155,8 @@ public class UpdateService {
                         LOGGER.info("***** Completed Updating API : " + apiName + "|" + apiContext + "|" + apiVersion);
                     } catch (Exception e) {
                         LOGGER.log(Level.SEVERE, "Error occurred while processing API with ID: " + apiId, e);
+                        LOGGER.log(Level.SEVERE, "Stopping Execution Of Client");
+                        System.exit(0);
                     }
                 }
 
@@ -194,5 +206,24 @@ public class UpdateService {
             }
         }
         return payload;
+    }
+
+    public static String[] getApiSkipListArray(String apiSkipList) {
+        if (apiSkipList == null || apiSkipList.isEmpty()) {
+            return new String[0];  // Return an empty array if input is invalid
+        }
+        apiSkipList = apiSkipList.trim();
+        if (apiSkipList.startsWith("[") && apiSkipList.endsWith("]")) {
+            // Remove the surrounding brackets
+            apiSkipList = apiSkipList.substring(1, apiSkipList.length() - 1).trim();
+        } else {
+            throw new IllegalArgumentException("Input must be a list formatted with square brackets.");
+        }
+        // Split by comma and trim spaces from each element
+        String[] array = apiSkipList.split(",");
+        for (int i = 0; i < array.length; i++) {
+            array[i] = array[i].trim();
+        }
+        return array;
     }
 }

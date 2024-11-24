@@ -19,7 +19,8 @@ public class UpdateService {
         String adminusername = configs.getProperty("ADMIN.USERNAME");
         String adminpassword = configs.getProperty("ADMIN.PASSWORD");
         String publisherRestUrl = configs.getProperty("PUBLISHER.REST.URL");
-        String visibilityRestrictRole = configs.getProperty("DEVPORTAL.RESTRICTED.ROLE");
+        String visibilityRestrictRoleList = configs.getProperty("DEVPORTAL.RESTRICTED.ROLE.LIST");
+        String [] visibilityRestrictRoleListArray = getArrayFromString(visibilityRestrictRoleList);
         String apiSkipList = configs.getProperty("API.SKIP.LIST");
         String [] apiSkipListArray = getArrayFromString(apiSkipList);
         String apiExplicitUpdateList = configs.getProperty("EXPLICIT.API.UPDATE.LIST");
@@ -90,8 +91,11 @@ public class UpdateService {
                                 visibleRoles = new JSONArray(); // initialize if empty
                             }
 
-                            if (!visibleRoles.contains(visibilityRestrictRole)) {
-                                visibleRoles.add(visibilityRestrictRole);
+                            // Add missing roles from visibilityRestrictRoles to visibleRoles
+                            for (String role : visibilityRestrictRoleListArray) {
+                                if (!visibleRoles.contains(role)) {
+                                    visibleRoles.add(role);
+                                }
                             }
 
                             apiDetailsByApiId.put("visibleRoles", visibleRoles);
@@ -111,8 +115,11 @@ public class UpdateService {
                                 visibleRoles = new JSONArray();
                             }
 
-                            if (!visibleRoles.contains(visibilityRestrictRole)) {
-                                visibleRoles.add(visibilityRestrictRole);
+                            // Add missing roles from visibilityRestrictRoles to visibleRoles
+                            for (String role : visibilityRestrictRoleListArray) {
+                                if (!visibleRoles.contains(role)) {
+                                    visibleRoles.add(role);
+                                }
                             }
 
                             apiDetailsByApiId.put("visibleRoles", visibleRoles);

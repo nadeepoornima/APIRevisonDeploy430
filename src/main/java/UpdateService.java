@@ -16,13 +16,15 @@ public class UpdateService {
 
     public static void main(String[] args) {
         ReadConfigFile configs = new ReadConfigFile();
-
         String adminusername = configs.getProperty("ADMIN.USERNAME");
         String adminpassword = configs.getProperty("ADMIN.PASSWORD");
         String publisherRestUrl = configs.getProperty("PUBLISHER.REST.URL");
         String visibilityRestrictRole = configs.getProperty("DEVPORTAL.RESTRICTED.ROLE");
         String apiSkipList = configs.getProperty("API.SKIP.LIST");
-        String [] apiSkipListArray = getApiSkipListArray(apiSkipList);
+        String [] apiSkipListArray = getArrayFromString(apiSkipList);
+        String apiExplicitUpdateList = configs.getProperty("EXPLICIT.API.UPDATE.LIST");
+        String [] apiExplicitUpdateListArray = getArrayFromString(apiExplicitUpdateList);
+        boolean enableExplicitUpdateMode = Boolean.parseBoolean(configs.getProperty("ENABLE.EXPLICIT.API.UPDATE.MODE"));
         long sleepTime = Long.parseLong(configs.getProperty("API.REDEPLOY.THREAD.SLEEP.TIME"));
 
         LOGGER.info("***** Starting API Update *****");
@@ -32,6 +34,19 @@ public class UpdateService {
 
         // Get API List by calling /api/am/publisher/v3/apis
         ArrayList<JSONObject> apiDetailsArray = getAPIList(publisherRestUrl, accessToken);
+
+        // Check if Running on Explicit API Update Mode
+        if (enableExplicitUpdateMode){
+            if (apiExplicitUpdateListArray.length==0){
+                LOGGER.log(Level.SEVERE, "***** Running in Explicit API Update Mode , But No APIs defined at EXPLICIT.API.UPDATE.LIST ");
+                LOGGER.log(Level.SEVERE, "Stopping Execution Of Client");
+                System.exit(0);
+            } else {
+                LOGGER.info("***** Running in Explicit API Update Mode , Hence only the listed APIs will be updated ");
+                apiDetailsArray = getFilteredApiDetailsList(apiDetailsArray,apiExplicitUpdateListArray);
+                LOGGER.info("***** Found " +apiDetailsArray.size()+ " APIs out of " +apiExplicitUpdateListArray.length+ " listed under EXPLICIT.API.UPDATE.LIST");
+            }
+        }
 
         if (apiDetailsArray != null && !apiDetailsArray.isEmpty()) {
             LOGGER.info("***** Number Of APIs : " + apiDetailsArray.size());
@@ -208,7 +223,7 @@ public class UpdateService {
         return payload;
     }
 
-    public static String[] getApiSkipListArray(String apiSkipList) {
+    public static String[] getArrayFromString(String apiSkipList) {
         if (apiSkipList == null || apiSkipList.isEmpty()) {
             return new String[0];  // Return an empty array if input is invalid
         }
@@ -225,5 +240,19 @@ public class UpdateService {
             array[i] = array[i].trim();
         }
         return array;
+    }
+
+    public static ArrayList<JSONObject> getFilteredApiDetailsList(ArrayList<JSONObject> apiDetailsArray , String[] apiExplicitUpdateListArray){
+        // Convert the String array to a List
+        ArrayList<String> stringList = new ArrayList<>(Arrays.asList(apiExplicitUpdateListArray));
+        ArrayList<JSONObject> filteredArrayList = new ArrayList<>();
+        // Filter the apiDetailsArray
+        for (JSONObject jsonObject : apiDetailsArray) {
+            String id = (String) jsonObject.get("id");
+            if (stringList.contains(id)) {
+                filteredArrayList.add(jsonObject);
+            }
+        }
+        return filteredArrayList;
     }
 }

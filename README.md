@@ -4,7 +4,7 @@ Compatible with wso2am-4.1.0. \
 
 # Steps to follow
 
-1. Copy the **client-truststore.jks**  file resides **<APIM_HOME>/repository/resources/security** directory and place it inside the migration client stored location 
+1. Copy the **client-truststore.jks**  file resides **<APIM_HOME>/repository/resources/security** directory and place it inside the apiUpdate client stored location 
 2. Please note that ,all three files; **client-truststore.jks, Update-Client-1.0-SNAPSHOT-jar-with-dependencies.jar, logging.properties and the config.properties** files  should be stored in the same location along with **/logs** folder. 
 3. Modify the **config.properties** file accordingly - refer the sample config.properties file attached 
 
@@ -22,7 +22,15 @@ API.REDEPLOY.THREAD.SLEEP.TIME = 1000
 # Configure The role you need to restrict with
 DEVPORTAL.RESTRICTED.ROLE = restrictRole
 # Configure the API ids you want to skip as comma seperated array
-API.SKIP.LIST = [a62ca2a7-a1d2-4919-9f5c-642e36d07099,352a7d6c-5bec-4964-b059-850ac6c95006]
+# Ex : API.SKIP.LIST = [a62ca2a7-a1d2-4919-9f5c-642e36d07099,352a7d6c-5bec-4964-b059-850ac6c95006]
+API.SKIP.LIST = []
+# Set this to true if you need to run the client in Explicit API update Mode . By Default its false 
+# When The Explicit API update Mode is enabled , it will update the APIs defined in EXPLICIT.API.UPDATE.LIST
+# Will be useful for testing the client flow only for 1 or 2 APIs 
+ENABLE.EXPLICIT.API.UPDATE.MODE = false
+# Configure the API ids you want to explicitly update as comma seperated array
+# Ex : EXPLICIT.API.UPDATE.LIST = [a62ca2a7-a1d2-4919-9f5c-642e36d07099,352a7d6c-5bec-4964-b059-850ac6c95006]
+EXPLICIT.API.UPDATE.LIST = []
 ```
 4. logging.properties file
 

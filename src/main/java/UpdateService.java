@@ -21,6 +21,8 @@ public class UpdateService {
         String publisherRestUrl = configs.getProperty("PUBLISHER.REST.URL");
         String visibilityRestrictRoleList = configs.getProperty("DEVPORTAL.RESTRICTED.ROLE.LIST");
         String [] visibilityRestrictRoleListArray = getArrayFromString(visibilityRestrictRoleList);
+        String visibilityRestrictRoleListToRemove = configs.getProperty("DEVPORTAL.RESTRICTED.ROLE.LIST.TO.REMOVE");
+        String [] visibilityRestrictRoleListToRemoveArray = getArrayFromString(visibilityRestrictRoleListToRemove);
         String apiSkipList = configs.getProperty("API.SKIP.LIST");
         String [] apiSkipListArray = getArrayFromString(apiSkipList);
         String apiExplicitUpdateList = configs.getProperty("EXPLICIT.API.UPDATE.LIST");
@@ -86,7 +88,6 @@ public class UpdateService {
                         if (apiVisibility.equalsIgnoreCase("public")) {
                             apiDetailsByApiId.put("visibility", "RESTRICTED");
                             JSONArray visibleRoles = (JSONArray) apiDetailsByApiId.get("visibleRoles");
-
                             if (visibleRoles == null) {
                                 visibleRoles = new JSONArray(); // initialize if empty
                             }
@@ -96,6 +97,17 @@ public class UpdateService {
                                 if (!visibleRoles.contains(role)) {
                                     visibleRoles.add(role);
                                 }
+                            }
+
+                            // Remove roles visibilityRestrictRolesToRemove from visibleRoles
+                            for (String role : visibilityRestrictRoleListToRemoveArray) {
+                                if (visibleRoles.contains(role)) {
+                                    visibleRoles.remove(role);
+                                }
+                            }
+
+                            if (visibleRoles.isEmpty()){
+                                apiDetailsByApiId.put("visibility", "PUBLIC");
                             }
 
                             apiDetailsByApiId.put("visibleRoles", visibleRoles);
@@ -120,6 +132,17 @@ public class UpdateService {
                                 if (!visibleRoles.contains(role)) {
                                     visibleRoles.add(role);
                                 }
+                            }
+
+                            // Remove roles visibilityRestrictRolesToRemove from visibleRoles
+                            for (String role : visibilityRestrictRoleListToRemoveArray) {
+                                if (visibleRoles.contains(role)) {
+                                    visibleRoles.remove(role);
+                                }
+                            }
+
+                            if (visibleRoles.isEmpty()){
+                                apiDetailsByApiId.put("visibility", "PUBLIC");
                             }
 
                             apiDetailsByApiId.put("visibleRoles", visibleRoles);

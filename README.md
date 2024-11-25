@@ -14,8 +14,9 @@ After successful build use the created **Update-Client-1.0-SNAPSHOT-jar-with-dep
 # Steps to follow
 
 1. Copy the **client-truststore.jks**  file resides **<APIM_HOME>/repository/resources/security** directory and place it inside the apiUpdate client stored location 
-2. Please note that ,all three files; **client-truststore.jks, Update-Client-1.0-SNAPSHOT-jar-with-dependencies.jar, logging.properties and the config.properties** files  should be stored in the same location along with **/logs** folder. 
-A sampledirectory structure would look like follows.
+2. Please note that ,all three files; **client-truststore.jks, Update-Client-1.0-SNAPSHOT-jar-with-dependencies.jar, logging.properties and the config.properties** files  should be stored in the same location along with **/logs** folder.
+
+A sample directory structure would look like follows.
 ```
 └── /WorkingDirectory
     ├── Update-Client-1.0-SNAPSHOT-jar-with-dependencies.jar

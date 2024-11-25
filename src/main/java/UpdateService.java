@@ -16,8 +16,8 @@ public class UpdateService {
 
     public static void main(String[] args) {
         ReadConfigFile configs = new ReadConfigFile();
-        int maxApiLimit = 1000;
-        maxApiLimit = Integer.parseInt(configs.getProperty("MAX.API.LIMIT"));
+        String maxApiLimitProp = configs.getProperty("MAX.API.LIMIT");
+        int maxApiLimit = (maxApiLimitProp != null) ? Integer.parseInt(maxApiLimitProp) : 1000;
         String adminusername = configs.getProperty("ADMIN.USERNAME");
         String adminpassword = configs.getProperty("ADMIN.PASSWORD");
         String publisherRestUrl = configs.getProperty("PUBLISHER.REST.URL");

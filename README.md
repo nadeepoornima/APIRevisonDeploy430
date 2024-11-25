@@ -5,18 +5,30 @@ Compatible with wso2am-4.1.0.
 # Building the Client 
 Clone the repository. \
 execute ```mvn clean install``` from inside the **/customAPIpublisher** directory. \
-After successful build use the **Update-Client-1.0-SNAPSHOT-jar-with-dependencies.jar** inside **/customAPIpublisher/target** directory.
+After successful build use the created **Update-Client-1.0-SNAPSHOT-jar-with-dependencies.jar** inside **/customAPIpublisher/target** directory.
 
 # Steps to follow
 
 1. Copy the **client-truststore.jks**  file resides **<APIM_HOME>/repository/resources/security** directory and place it inside the apiUpdate client stored location 
 2. Please note that ,all three files; **client-truststore.jks, Update-Client-1.0-SNAPSHOT-jar-with-dependencies.jar, logging.properties and the config.properties** files  should be stored in the same location along with **/logs** folder. 
-3. Modify the **config.properties** file accordingly - refer the sample config.properties file attached 
+A sampledirectory structure would look like follows.
+```
+└── /WorkingDirectory
+    ├── Update-Client-1.0-SNAPSHOT-jar-with-dependencies.jar
+    ├── logging.properties
+    ├── client-truststore.jks
+    ├── config.properties
+    └── /logs
+        └── app.log
+```
+3. Modify the **config.properties** file accordingly - refer the sample config.properties file attached
 
 ```
 # Trust-store configurations
 TRUSTSTORE.PATH = client-truststore.jks
 TRUSTSTORE.PASSWORD = wso2carbon
+# Max API limit to be updated . Default 1000
+MAX.API.LIMIT = 1000
 # tenant admin configurations
 ADMIN.USERNAME = admin
 ADMIN.PASSWORD = admin
@@ -33,9 +45,9 @@ DEVPORTAL.RESTRICTED.ROLE.LIST.TO.REMOVE = []
 # Configure the API ids you want to skip as comma seperated array
 # Ex : API.SKIP.LIST = [a62ca2a7-a1d2-4919-9f5c-642e36d07099,352a7d6c-5bec-4964-b059-850ac6c95006]
 API.SKIP.LIST = []
-# Set this to true if you need to run the client in Explicit API update Mode . By Default its false 
+# Set this to true if you need to run the client in Explicit API update Mode . By Default its false
 # When The Explicit API update Mode is enabled , it will update the APIs defined in EXPLICIT.API.UPDATE.LIST
-# Will be useful for testing the client flow only for 1 or 2 APIs 
+# Will be useful for testing the client flow only for 1 or 2 APIs
 ENABLE.EXPLICIT.API.UPDATE.MODE = false
 # Configure the API ids you want to explicitly update as comma seperated array
 # Ex : EXPLICIT.API.UPDATE.LIST = [a62ca2a7-a1d2-4919-9f5c-642e36d07099,352a7d6c-5bec-4964-b059-850ac6c95006]

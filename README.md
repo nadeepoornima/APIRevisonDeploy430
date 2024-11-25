@@ -1,6 +1,10 @@
 # API Updater
-Used to Update All APIs with a given role for devportal visibility restriction [1]. \
-Compatible with wso2am-4.1.0. 
+Used to bulk update APIs with a given role/s for devportal visibility restriction [1]. \
+Compatible with wso2am-4.1.0. \
+[1] https://apim.docs.wso2.com/en/4.1.0/design/advanced-topics/control-api-visibility-and-subscription-availability-in-developer-portal/#control-api-visibility-in-the-developer-portal
+
+# Recommendations
+Back up the APIM_DB and SHARED_DB before the execution of the client. 
 
 # Building the Client 
 Clone the repository. \

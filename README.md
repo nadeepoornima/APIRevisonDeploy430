@@ -1,6 +1,11 @@
 # API Updater
 Used to Update All APIs with a given role for devportal visibility restriction [1]. \
-Compatible with wso2am-4.1.0. \
+Compatible with wso2am-4.1.0. 
+
+# Building the Client 
+Clone the repository. \
+execute ```mvn clean install``` from inside the **/customAPIpublisher** directory. \
+After successful build use the **Update-Client-1.0-SNAPSHOT-jar-with-dependencies.jar** inside **/customAPIpublisher/target** directory.
 
 # Steps to follow
 
@@ -17,10 +22,14 @@ ADMIN.USERNAME = admin
 ADMIN.PASSWORD = admin
 # Publisher REST API configurations
 PUBLISHER.REST.URL = https://localhost:9443/api/am/publisher/v3/apis
-# configure thread sleep time between API Update
+# configure thread sleep time in miliseconds between API Update
 API.REDEPLOY.THREAD.SLEEP.TIME = 1000
-# Configure The role you need to restrict with
-DEVPORTAL.RESTRICTED.ROLE = restrictRole
+# Configure The role list you need to restrict with
+# Ex : DEVPORTAL.RESTRICTED.ROLE.LIST = [restrictRole,abcrole,xyzrole]
+DEVPORTAL.RESTRICTED.ROLE.LIST = []
+# Configure The role list you need to remove restriction
+# Ex : DEVPORTAL.RESTRICTED.ROLE.LIST.TO.REMOVE = [restrictRole,abcrole]
+DEVPORTAL.RESTRICTED.ROLE.LIST.TO.REMOVE = []
 # Configure the API ids you want to skip as comma seperated array
 # Ex : API.SKIP.LIST = [a62ca2a7-a1d2-4919-9f5c-642e36d07099,352a7d6c-5bec-4964-b059-850ac6c95006]
 API.SKIP.LIST = []
@@ -54,7 +63,7 @@ java.util.logging.SimpleFormatter.format = %1$tF %1$tT | %2$s | %3$s | %5$s %n
 
 **app.log** file will be created under **/logs** directory . 
 
-Folllowing is a sample app.log after execution 
+Following is a sample app.log after execution 
 
 ```
 2024-11-24 00:26:32 | UpdateService main | UpdateService | ***** Starting API Update ***** 

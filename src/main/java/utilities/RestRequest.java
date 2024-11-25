@@ -26,7 +26,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.*;
-import java.security.cert.CertificateException;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -37,10 +36,10 @@ public class RestRequest {
     private static String KEY_STORE_PATH = "client-truststore.jks";
     private static String KEY_STORE_PASSWORD = "wso2carbon";
 
-    public static ArrayList<JSONObject> getAPIList(String url, String accessToken) {
+    public static ArrayList<JSONObject> getAPIList(String url, String accessToken, int maxApiLimit) {
         ArrayList<JSONObject> apiDetailsList = new ArrayList<>();
         HttpClientBuilder httpBuilder = getBuilder();
-        url = url + "?limit=700";
+        url = url + "?limit=" + maxApiLimit;
 
         try (CloseableHttpClient httpClient = httpBuilder.build()) {
             HttpGet httpGet = new HttpGet(url);

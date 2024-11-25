@@ -16,6 +16,8 @@ public class UpdateService {
 
     public static void main(String[] args) {
         ReadConfigFile configs = new ReadConfigFile();
+        int maxApiLimit = 1000;
+        maxApiLimit = Integer.parseInt(configs.getProperty("MAX.API.LIMIT"));
         String adminusername = configs.getProperty("ADMIN.USERNAME");
         String adminpassword = configs.getProperty("ADMIN.PASSWORD");
         String publisherRestUrl = configs.getProperty("PUBLISHER.REST.URL");
@@ -36,7 +38,7 @@ public class UpdateService {
         String accessToken = Base64.getEncoder().encodeToString((adminusername + ":" + adminpassword).getBytes(StandardCharsets.UTF_8));
 
         // Get API List by calling /api/am/publisher/v3/apis
-        ArrayList<JSONObject> apiDetailsArray = getAPIList(publisherRestUrl, accessToken);
+        ArrayList<JSONObject> apiDetailsArray = getAPIList(publisherRestUrl, accessToken, maxApiLimit);
 
         // Check if Running on Explicit API Update Mode
         if (enableExplicitUpdateMode){

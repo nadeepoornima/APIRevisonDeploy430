@@ -1,4 +1,4 @@
-package utilities;
+package com.sample.utilities;
 
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.http.HttpEntity;

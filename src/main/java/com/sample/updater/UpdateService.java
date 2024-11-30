@@ -1,3 +1,5 @@
+package com.sample.updater;
+
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import com.sample.utilities.ReadConfigFile;

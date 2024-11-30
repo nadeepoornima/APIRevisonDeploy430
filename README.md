@@ -92,24 +92,24 @@ java.util.logging.SimpleFormatter.format = %1$tF %1$tT | %2$s | %3$s | %5$s %n
 Following is a sample app.log after execution 
 
 ```
-2024-11-24 00:26:32 | UpdateService main | UpdateService | ***** Starting API Update ***** 
-2024-11-24 00:26:32 | UpdateService main | UpdateService | ***** Number Of APIs : 10 
-2024-11-24 00:26:32 | UpdateService main | UpdateService |
-2024-11-24 00:26:32 | UpdateService main | UpdateService | ***** Starting Processing API with ID :8dbf65b7-1243-4e6b-a748-c525b5fe65c2 
-2024-11-24 00:26:32 | UpdateService main | UpdateService | ***** API : test|/test|1 is defined in APISkipList. Hence Skipping this API  
-2024-11-24 00:26:32 | UpdateService main | UpdateService | ***** Finished Processing API with Id : 8dbf65b7-1243-4e6b-a748-c525b5fe65c2 
-2024-11-24 00:26:32 | UpdateService main | UpdateService |  
-2024-11-24 00:26:32 | UpdateService main | UpdateService | ***** Starting Processing API with ID :3a53af6f-0607-4f92-bdb1-ee5f4c48fb95 
-2024-11-24 00:26:32 | UpdateService main | UpdateService | ***** API : test1|/t1|1 is in PUBLISHED State. Proceeding with Update. 
+2024-11-24 00:26:32 | com.sample.updater.UpdateService main | com.sample.updater.UpdateService | ***** Starting API Update ***** 
+2024-11-24 00:26:32 | com.sample.updater.UpdateService main | com.sample.updater.UpdateService | ***** Number Of APIs : 10 
+2024-11-24 00:26:32 | com.sample.updater.UpdateService main | com.sample.updater.UpdateService |
+2024-11-24 00:26:32 | com.sample.updater.UpdateService main | com.sample.updater.UpdateService | ***** Starting Processing API with ID :8dbf65b7-1243-4e6b-a748-c525b5fe65c2 
+2024-11-24 00:26:32 | com.sample.updater.UpdateService main | com.sample.updater.UpdateService | ***** API : test|/test|1 is defined in APISkipList. Hence Skipping this API  
+2024-11-24 00:26:32 | com.sample.updater.UpdateService main | com.sample.updater.UpdateService | ***** Finished Processing API with Id : 8dbf65b7-1243-4e6b-a748-c525b5fe65c2 
+2024-11-24 00:26:32 | com.sample.updater.UpdateService main | com.sample.updater.UpdateService |  
+2024-11-24 00:26:32 | com.sample.updater.UpdateService main | com.sample.updater.UpdateService | ***** Starting Processing API with ID :3a53af6f-0607-4f92-bdb1-ee5f4c48fb95 
+2024-11-24 00:26:32 | com.sample.updater.UpdateService main | com.sample.updater.UpdateService | ***** API : test1|/t1|1 is in PUBLISHED State. Proceeding with Update. 
 2024-11-24 00:26:32 | com.sample.utilities.RestRequest handleUpdateResponse | com.sample.utilities.RestRequest | API updated successfully. 
-2024-11-24 00:26:32 | UpdateService main | UpdateService | ***** API visibility and roles updated successfully. 
-2024-11-24 00:26:32 | UpdateService main | UpdateService | ***** Revision Count for API : test1|/t1|1 is : 5 
-2024-11-24 00:26:32 | UpdateService main | UpdateService | ***** Revision Count for API is 5. Deleting Oldest Revision. 
+2024-11-24 00:26:32 | com.sample.updater.UpdateService main | com.sample.updater.UpdateService | ***** API visibility and roles updated successfully. 
+2024-11-24 00:26:32 | com.sample.updater.UpdateService main | com.sample.updater.UpdateService | ***** Revision Count for API : test1|/t1|1 is : 5 
+2024-11-24 00:26:32 | com.sample.updater.UpdateService main | com.sample.updater.UpdateService | ***** Revision Count for API is 5. Deleting Oldest Revision. 
 2024-11-24 00:26:32 | com.sample.utilities.RestRequest deleteRevision | com.sample.utilities.RestRequest | Successfully deleted revision ID: a8c5d790-5c54-42b9-aabf-db32f1b14553 for API ID: 3a53af6f-0607-4f92-bdb1-ee5f4c48fb95 
-2024-11-24 00:26:32 | UpdateService main | UpdateService | ***** New Revision created with id : 5bf1727e-deda-4721-83ff-b97905554b71 for API : test1|/t1|1 
-2024-11-24 00:26:32 | UpdateService main | UpdateService | ***** New Revision going to be deployed with payload : [{"vhost":"localhost","displayOnDevportal":true,"name":"Default"}, {"vhost":"localhost","displayOnDevportal":true,"name":"Production Gateway"}] 
-2024-11-24 00:26:33 | UpdateService main | UpdateService | ***** Completed Updating API : test1|/t1|1 
-2024-11-24 00:26:33 | UpdateService main | UpdateService | ***** Finished Processing API with Id : 3a53af6f-0607-4f92-bdb1-ee5f4c48fb95 
+2024-11-24 00:26:32 | com.sample.updater.UpdateService main | com.sample.updater.UpdateService | ***** New Revision created with id : 5bf1727e-deda-4721-83ff-b97905554b71 for API : test1|/t1|1 
+2024-11-24 00:26:32 | com.sample.updater.UpdateService main | com.sample.updater.UpdateService | ***** New Revision going to be deployed with payload : [{"vhost":"localhost","displayOnDevportal":true,"name":"Default"}, {"vhost":"localhost","displayOnDevportal":true,"name":"Production Gateway"}] 
+2024-11-24 00:26:33 | com.sample.updater.UpdateService main | com.sample.updater.UpdateService | ***** Completed Updating API : test1|/t1|1 
+2024-11-24 00:26:33 | com.sample.updater.UpdateService main | com.sample.updater.UpdateService | ***** Finished Processing API with Id : 3a53af6f-0607-4f92-bdb1-ee5f4c48fb95 
 ```
 
 

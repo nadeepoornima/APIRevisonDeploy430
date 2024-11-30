@@ -83,7 +83,7 @@
                             <archive>
                                 <manifest>
                                     <mainClass>
-                                        UpdateService
+                                        com.sample.updater.UpdateService
                                     </mainClass>
                                 </manifest>
                             </archive>

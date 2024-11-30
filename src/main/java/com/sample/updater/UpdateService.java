@@ -1,6 +1,8 @@
+package com.sample.updater;
+
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
-import utilities.ReadConfigFile;
+import com.sample.utilities.ReadConfigFile;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -8,7 +10,7 @@ import java.util.Base64;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import static utilities.RestRequest.*;
+import static com.sample.utilities.RestRequest.*;
 
 public class UpdateService {
 
@@ -86,72 +88,14 @@ public class UpdateService {
                         // Check if devportal visibility is PUBLIC
                         String apiVisibility = (String) apiDetailsByApiId.get("visibility");
 
-                        // Modify the API visibility to restricted if it's public
-                        if (apiVisibility.equalsIgnoreCase("public")) {
-                            apiDetailsByApiId.put("visibility", "RESTRICTED");
-                            JSONArray visibleRoles = (JSONArray) apiDetailsByApiId.get("visibleRoles");
-                            if (visibleRoles == null) {
-                                visibleRoles = new JSONArray(); // initialize if empty
-                            }
+                        // Update API visibility in object
+                        boolean isUpdated = updateVisibilityAndRoles(apiDetailsByApiId, apiVisibility,
+                                visibilityRestrictRoleListArray,
+                                visibilityRestrictRoleListToRemoveArray);
 
-                            // Add missing roles from visibilityRestrictRoles to visibleRoles
-                            for (String role : visibilityRestrictRoleListArray) {
-                                if (!visibleRoles.contains(role)) {
-                                    visibleRoles.add(role);
-                                }
-                            }
-
-                            // Remove roles visibilityRestrictRolesToRemove from visibleRoles
-                            for (String role : visibilityRestrictRoleListToRemoveArray) {
-                                if (visibleRoles.contains(role)) {
-                                    visibleRoles.remove(role);
-                                }
-                            }
-
-                            if (visibleRoles.isEmpty()){
-                                apiDetailsByApiId.put("visibility", "PUBLIC");
-                            }
-
-                            apiDetailsByApiId.put("visibleRoles", visibleRoles);
-
+                        if (isUpdated) {
                             // Call update API
-                            boolean isUpdated = updateApi(publisherRestUrl, accessToken, apiId, apiDetailsByApiId);
-                            if (isUpdated) {
-                                LOGGER.info("***** API visibility and roles updated successfully.");
-                            } else {
-                                LOGGER.warning("***** Failed to update API visibility and roles.");
-                            }
-
-                        } else if (apiVisibility.equalsIgnoreCase("restricted")) {
-                            // Handle only visibleRoles for restricted visibility
-                            JSONArray visibleRoles = (JSONArray) apiDetailsByApiId.get("visibleRoles");
-                            if (visibleRoles == null) {
-                                visibleRoles = new JSONArray();
-                            }
-
-                            // Add missing roles from visibilityRestrictRoles to visibleRoles
-                            for (String role : visibilityRestrictRoleListArray) {
-                                if (!visibleRoles.contains(role)) {
-                                    visibleRoles.add(role);
-                                }
-                            }
-
-                            // Remove roles visibilityRestrictRolesToRemove from visibleRoles
-                            for (String role : visibilityRestrictRoleListToRemoveArray) {
-                                if (visibleRoles.contains(role)) {
-                                    visibleRoles.remove(role);
-                                }
-                            }
-
-                            if (visibleRoles.isEmpty()){
-                                apiDetailsByApiId.put("visibility", "PUBLIC");
-                            }
-
-                            apiDetailsByApiId.put("visibleRoles", visibleRoles);
-
-                            // Call update API
-                            boolean isUpdated = updateApi(publisherRestUrl, accessToken, apiId, apiDetailsByApiId);
-                            if (isUpdated) {
+                            if (updateApi(publisherRestUrl, accessToken, apiId, apiDetailsByApiId)) {
                                 LOGGER.info("***** API visibility and roles updated successfully.");
                             } else {
                                 LOGGER.warning("***** Failed to update API visibility and roles.");
@@ -162,20 +106,9 @@ public class UpdateService {
                         ArrayList<JSONObject> apiRevisionArray = getRevisionListByApiId(publisherRestUrl, accessToken, apiId);
                         LOGGER.info("***** Revision Count for API : " + apiName + "|" + apiContext + "|" + apiVersion + " is : " + apiRevisionArray.size());
 
+                        // Handle Revision Deployment
                         if (apiRevisionArray.size() < 5) {
-                            // Create new API revision
-                            JSONObject newApiRevision = createRevision(publisherRestUrl, accessToken, apiId);
-                            String newApiRevisionId = (String) newApiRevision.get("id");
-                            LOGGER.info("***** New Revision created with id : " + newApiRevisionId + " for API : " + apiName + "|" + apiContext + "|" + apiVersion);
-
-                            // Create payload to deploy new API revision
-                            ArrayList<JSONObject> deployRevisionPayload = buildDeployRevisionPayload(apiRevisionArray);
-                            LOGGER.info("***** New Revision going to be deployed with payload : " + deployRevisionPayload.toString());
-
-                            // Deploy new API revision
-                            ArrayList<JSONObject> newDeployedRevisionDetails = deployRevision(publisherRestUrl, accessToken, apiId, newApiRevisionId, deployRevisionPayload);
-                            Thread.sleep(sleepTime);
-
+                            handleRevisionCreationAndDeployment(publisherRestUrl, accessToken, apiId, apiName, apiContext, apiVersion, apiRevisionArray, sleepTime);
                         } else {
                             LOGGER.info("***** Revision Count for API is 5. Deleting Oldest Revision.");
 
@@ -185,21 +118,11 @@ public class UpdateService {
                             // Delete revision and get remaining revisions
                             ArrayList<JSONObject> remainingApiRevisionArray = deleteRevision(publisherRestUrl, accessToken, apiId, revisionIdToDelete);
 
-                            // Create new API revision
-                            JSONObject newApiRevision = createRevision(publisherRestUrl, accessToken, apiId);
-                            String newApiRevisionId = (String) newApiRevision.get("id");
-                            LOGGER.info("***** New Revision created with id : " + newApiRevisionId + " for API : " + apiName + "|" + apiContext + "|" + apiVersion);
-
-                            // Create payload to deploy new API revision
-                            ArrayList<JSONObject> deployRevisionPayload = buildDeployRevisionPayload(remainingApiRevisionArray);
-                            LOGGER.info("***** New Revision going to be deployed with payload : " + deployRevisionPayload.toString());
-
-                            // Deploy new API revision
-                            ArrayList<JSONObject> newDeployedRevisionDetails = deployRevision(publisherRestUrl, accessToken, apiId, newApiRevisionId, deployRevisionPayload);
-                            Thread.sleep(sleepTime);
+                            // Handle new revision creation and deployment
+                            handleRevisionCreationAndDeployment(publisherRestUrl, accessToken, apiId, apiName, apiContext, apiVersion, remainingApiRevisionArray, sleepTime);
                         }
-
                         LOGGER.info("***** Completed Updating API : " + apiName + "|" + apiContext + "|" + apiVersion);
+
                     } catch (Exception e) {
                         LOGGER.log(Level.SEVERE, "Error occurred while processing API with ID: " + apiId, e);
                         LOGGER.log(Level.SEVERE, "Stopping Execution Of Client");
@@ -216,6 +139,8 @@ public class UpdateService {
                     LOGGER.log(Level.SEVERE, "Thread sleep interrupted", e);
                 }
             }
+        } else {
+            LOGGER.info("***** No APIs Found to Update . API updating completed ");
         }
 
         LOGGER.info("............ API updating completed ............ ");
@@ -287,4 +212,64 @@ public class UpdateService {
         }
         return filteredArrayList;
     }
+
+    public static boolean updateVisibilityAndRoles(JSONObject apiDetails, String currentVisibility,
+                                                   String[] visibilityRestrictRoles,
+                                                   String[] rolesToRemove) {
+
+        if (!"PRIVATE".equalsIgnoreCase(currentVisibility)) {
+            boolean isUpdated = false;
+            JSONArray visibleRoles = (JSONArray) apiDetails.get("visibleRoles");
+            if (visibleRoles == null) {
+                visibleRoles = new JSONArray(); // Initialize if null
+            }
+
+            // Add missing roles
+            for (String role : visibilityRestrictRoles) {
+                if (!visibleRoles.contains(role)) {
+                    visibleRoles.add(role);
+                    isUpdated = true;
+                }
+            }
+
+            // Remove unwanted roles
+            for (String role : rolesToRemove) {
+                if (visibleRoles.contains(role)) {
+                    visibleRoles.remove(role);
+                    isUpdated = true;
+                }
+            }
+
+            // Adjust visibility if no roles are present
+            if (visibleRoles.isEmpty() && !"PUBLIC".equalsIgnoreCase(currentVisibility)) {
+                apiDetails.put("visibility", "PUBLIC");
+                isUpdated = true;
+            } else if (!visibleRoles.isEmpty() && !"RESTRICTED".equalsIgnoreCase(currentVisibility)) {
+                apiDetails.put("visibility", "RESTRICTED");
+                isUpdated = true;
+            }
+
+            apiDetails.put("visibleRoles", visibleRoles);
+            return isUpdated;
+        } else {
+            LOGGER.info("***** API visibility is set to PRIVATE . Hence do not update .");
+            return false;
+        }
+    }
+
+    private static void handleRevisionCreationAndDeployment(String publisherRestUrl, String accessToken, String apiId, String apiName, String apiContext, String apiVersion, ArrayList<JSONObject> apiRevisionArray, long sleepTime) throws InterruptedException {
+        // Create new API revision
+        JSONObject newApiRevision = createRevision(publisherRestUrl, accessToken, apiId);
+        String newApiRevisionId = (String) newApiRevision.get("id");
+        LOGGER.info("***** New Revision created with id : " + newApiRevisionId + " for API : " + apiName + "|" + apiContext + "|" + apiVersion);
+
+        // Create payload to deploy new API revision
+        ArrayList<JSONObject> deployRevisionPayload = buildDeployRevisionPayload(apiRevisionArray);
+        LOGGER.info("***** New Revision going to be deployed with payload : " + deployRevisionPayload.toString());
+
+        // Deploy new API revision
+        ArrayList<JSONObject> newDeployedRevisionDetails = deployRevision(publisherRestUrl, accessToken, apiId, newApiRevisionId, deployRevisionPayload);
+        Thread.sleep(sleepTime);
+    }
+
 }

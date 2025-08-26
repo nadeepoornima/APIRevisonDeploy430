@@ -205,10 +205,10 @@ public static ArrayList<JSONObject> buildDeployRevisionPayload(ArrayList<JSONObj
                 // Check if name = "external"
                 if ("external".equalsIgnoreCase(name)) {
                     //vhost value of external GW
-                    formattedDeployment.put("vhost", "api-tst.nn-group.com");
+                    formattedDeployment.put("vhost", "*******");
                 } else if("internal".equalsIgnoreCase(name)) {
                     //vhost value of internal GW
-                    formattedDeployment.put("vhost", "int.api-aws.tst.insim.biz");
+                    formattedDeployment.put("vhost", "*****");
                 }else {
                     formattedDeployment.put("vhost", deployment.get("vhost"));
                 }

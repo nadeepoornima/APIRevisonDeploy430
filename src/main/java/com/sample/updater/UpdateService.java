@@ -19,7 +19,7 @@ public class UpdateService {
     public static void main(String[] args) {
         ReadConfigFile configs = new ReadConfigFile();
         String maxApiLimitProp = configs.getProperty("MAX.API.LIMIT");
-        int maxApiLimit = (maxApiLimitProp != null) ? Integer.parseInt(maxApiLimitProp) : 1000;
+        int maxApiLimit = (maxApiLimitProp != null) ? Integer.parseInt(maxApiLimitProp) : 2000;
         String adminusername = configs.getProperty("ADMIN.USERNAME");
         String adminpassword = configs.getProperty("ADMIN.PASSWORD");
         String publisherRestUrl = configs.getProperty("PUBLISHER.REST.URL");
@@ -37,23 +37,26 @@ public class UpdateService {
         LOGGER.info("***** Starting API Update *****");
 
         // Create Basic accessToken by Encoding admin credentials
-        String accessToken = Base64.getEncoder().encodeToString((adminusername + ":" + adminpassword).getBytes(StandardCharsets.UTF_8));
+        String accessToken = Base64.getEncoder().encodeToString((adminusername + ":"
+                + adminpassword).getBytes(StandardCharsets.UTF_8));
 
         // Get API List by calling /api/am/publisher/v3/apis
         ArrayList<JSONObject> apiDetailsArray = getAPIList(publisherRestUrl, accessToken, maxApiLimit);
 
         // Check if Running on Explicit API Update Mode
-        if (enableExplicitUpdateMode){
-            if (apiExplicitUpdateListArray.length==0){
-                LOGGER.log(Level.SEVERE, "***** Running in Explicit API Update Mode , But No APIs defined at EXPLICIT.API.UPDATE.LIST ");
+        //if (enableExplicitUpdateMode){
+            //if (apiExplicitUpdateListArray.length==0){
+                LOGGER.log(Level.SEVERE, "***** Running in Explicit API Update Mode , " +
+                        "But No APIs defined at EXPLICIT.API.UPDATE.LIST ");
                 LOGGER.log(Level.SEVERE, "Stopping Execution Of Client");
-                System.exit(0);
-            } else {
+                //System.exit(0);
+           // } else {
                 LOGGER.info("***** Running in Explicit API Update Mode , Hence only the listed APIs will be updated ");
-                apiDetailsArray = getFilteredApiDetailsList(apiDetailsArray,apiExplicitUpdateListArray);
-                LOGGER.info("***** Found " +apiDetailsArray.size()+ " APIs out of " +apiExplicitUpdateListArray.length+ " listed under EXPLICIT.API.UPDATE.LIST");
-            }
-        }
+                //apiDetailsArray = getFilteredApiDetailsList(apiDetailsArray,apiExplicitUpdateListArray);
+                //LOGGER.info("***** Found " +apiDetailsArray.size()+ " APIs out of " +apiExplicitUpdateListArray.length+
+        // " listed under EXPLICIT.API.UPDATE.LIST");
+            //}
+       // }
 
         if (apiDetailsArray != null && !apiDetailsArray.isEmpty()) {
             LOGGER.info("***** Number Of APIs : " + apiDetailsArray.size());
@@ -70,16 +73,19 @@ public class UpdateService {
 
                 // If defined in apiSkipList skip this API
                 if (Arrays.asList(apiSkipListArray).contains(apiId)) {
-                    LOGGER.info("***** API : " + apiName + "|" + apiContext + "|" + apiVersion + " is defined in APISkipList. Hence Skipping this API ");
+                    LOGGER.info("***** API : " + apiName + "|" + apiContext + "|" + apiVersion + " is defined in " +
+                            "APISkipList. Hence Skipping this API ");
                     LOGGER.info("***** Finished Processing API with Id : " + apiId);
                     LOGGER.info("");
                     continue;
                 }
                 // We only update the APIs which are in published state
-                if (!apiStatus.equalsIgnoreCase("published")) {
-                    LOGGER.info("***** API : " + apiName + "|" + apiContext + "|" + apiVersion + " is Not in PUBLISHED State. Currently in state: " + apiStatus + " - Skipping this API.");
+                if (apiStatus.equalsIgnoreCase("CREATED")) {
+                    LOGGER.info("***** API : " + apiName + "|" + apiContext + "|" + apiVersion + " is in CREATED " +
+                            " State. Currently in state: " + apiStatus + " - Skipping this API.");
                 } else {
-                    LOGGER.info("***** API : " + apiName + "|" + apiContext + "|" + apiVersion + " is in PUBLISHED State. Proceeding with Update.");
+                    LOGGER.info("***** API : " + apiName + "|" + apiContext + "|" + apiVersion + " is in not in " +
+                            "CREATED State. Proceeding with Update.");
 
                     try {
                         // Get API details by passing the apiId by calling /api/am/publisher/v3/apis/<apiId>
@@ -103,12 +109,15 @@ public class UpdateService {
                         }
 
                         // Get revision list by passing API ID
-                        ArrayList<JSONObject> apiRevisionArray = getRevisionListByApiId(publisherRestUrl, accessToken, apiId);
-                        LOGGER.info("***** Revision Count for API : " + apiName + "|" + apiContext + "|" + apiVersion + " is : " + apiRevisionArray.size());
+                        ArrayList<JSONObject> apiRevisionArray = getRevisionListByApiId(publisherRestUrl, accessToken,
+                                apiId);
+                        LOGGER.info("***** Revision Count for API : " + apiName + "|" + apiContext + "|"
+                                + apiVersion + " is : " + apiRevisionArray.size());
 
                         // Handle Revision Deployment
                         if (apiRevisionArray.size() < 5) {
-                            handleRevisionCreationAndDeployment(publisherRestUrl, accessToken, apiId, apiName, apiContext, apiVersion, apiRevisionArray, sleepTime);
+                            handleRevisionCreationAndDeployment(publisherRestUrl, accessToken, apiId,
+                                    apiName, apiContext, apiVersion, apiRevisionArray, sleepTime);
                         } else {
                             LOGGER.info("***** Revision Count for API is 5. Deleting Oldest Revision.");
 
@@ -116,10 +125,12 @@ public class UpdateService {
                             String revisionIdToDelete = findRevisionToDelete(apiRevisionArray);
 
                             // Delete revision and get remaining revisions
-                            ArrayList<JSONObject> remainingApiRevisionArray = deleteRevision(publisherRestUrl, accessToken, apiId, revisionIdToDelete);
+                            ArrayList<JSONObject> remainingApiRevisionArray = deleteRevision(publisherRestUrl,
+                                    accessToken, apiId, revisionIdToDelete);
 
                             // Handle new revision creation and deployment
-                            handleRevisionCreationAndDeployment(publisherRestUrl, accessToken, apiId, apiName, apiContext, apiVersion, remainingApiRevisionArray, sleepTime);
+                            handleRevisionCreationAndDeployment(publisherRestUrl, accessToken, apiId, apiName,
+                                    apiContext, apiVersion, remainingApiRevisionArray, sleepTime);
                         }
                         LOGGER.info("***** Completed Updating API : " + apiName + "|" + apiContext + "|" + apiVersion);
 
@@ -162,23 +173,53 @@ public class UpdateService {
         return revisionIdToDelete;
     }
 
-    public static ArrayList<JSONObject> buildDeployRevisionPayload(ArrayList<JSONObject> apiRevisionArray) {
-        ArrayList<JSONObject> payload = new ArrayList<>();
-        for (JSONObject revision : apiRevisionArray) {
-            JSONArray deploymentInfo = (JSONArray) revision.get("deploymentInfo");
-            if (deploymentInfo != null) {
-                for (Object obj : deploymentInfo) {
-                    JSONObject deployment = (JSONObject) obj;
-                    JSONObject formattedDeployment = new JSONObject();
-                    formattedDeployment.put("name", deployment.get("name"));
+//    public static ArrayList<JSONObject> buildDeployRevisionPayload(ArrayList<JSONObject> apiRevisionArray) {
+//        ArrayList<JSONObject> payload = new ArrayList<>();
+//        for (JSONObject revision : apiRevisionArray) {
+//            JSONArray deploymentInfo = (JSONArray) revision.get("deploymentInfo");
+//            if (deploymentInfo != null) {
+//                for (Object obj : deploymentInfo) {
+//                    JSONObject deployment = (JSONObject) obj;
+//                    JSONObject formattedDeployment = new JSONObject();
+//                    formattedDeployment.put("name", deployment.get("name"));
+//                    formattedDeployment.put("vhost", deployment.get("vhost"));
+//                    formattedDeployment.put("displayOnDevportal", deployment.get("displayOnDevportal"));
+//                    payload.add(formattedDeployment);
+//                }
+//            }
+//        }
+//        return payload;
+//    }
+public static ArrayList<JSONObject> buildDeployRevisionPayload(ArrayList<JSONObject> apiRevisionArray) {
+    ArrayList<JSONObject> payload = new ArrayList<>();
+    for (JSONObject revision : apiRevisionArray) {
+        JSONArray deploymentInfo = (JSONArray) revision.get("deploymentInfo");
+        if (deploymentInfo != null) {
+            for (Object obj : deploymentInfo) {
+                JSONObject deployment = (JSONObject) obj;
+                JSONObject formattedDeployment = new JSONObject();
+
+                String name = (String) deployment.get("name");
+                formattedDeployment.put("name", name);
+
+                // Check if name = "external"
+                if ("external".equalsIgnoreCase(name)) {
+                    //customer external vhost value
+                    formattedDeployment.put("vhost", "*******");
+                } else if("internal".equalsIgnoreCase(name)) {
+                    //customer internal vhost value
+                    formattedDeployment.put("vhost", "*****");
+                }else {
                     formattedDeployment.put("vhost", deployment.get("vhost"));
-                    formattedDeployment.put("displayOnDevportal", deployment.get("displayOnDevportal"));
-                    payload.add(formattedDeployment);
                 }
+
+                formattedDeployment.put("displayOnDevportal", deployment.get("displayOnDevportal"));
+                payload.add(formattedDeployment);
             }
         }
-        return payload;
     }
+    return payload;
+}
 
     public static String[] getArrayFromString(String apiSkipList) {
         if (apiSkipList == null || apiSkipList.isEmpty()) {
@@ -199,7 +240,8 @@ public class UpdateService {
         return array;
     }
 
-    public static ArrayList<JSONObject> getFilteredApiDetailsList(ArrayList<JSONObject> apiDetailsArray , String[] apiExplicitUpdateListArray){
+    public static ArrayList<JSONObject> getFilteredApiDetailsList(ArrayList<JSONObject> apiDetailsArray ,
+                                                                  String[] apiExplicitUpdateListArray){
         // Convert the String array to a List
         ArrayList<String> stringList = new ArrayList<>(Arrays.asList(apiExplicitUpdateListArray));
         ArrayList<JSONObject> filteredArrayList = new ArrayList<>();
@@ -257,18 +299,23 @@ public class UpdateService {
         }
     }
 
-    private static void handleRevisionCreationAndDeployment(String publisherRestUrl, String accessToken, String apiId, String apiName, String apiContext, String apiVersion, ArrayList<JSONObject> apiRevisionArray, long sleepTime) throws InterruptedException {
+    private static void handleRevisionCreationAndDeployment(String publisherRestUrl, String accessToken,
+                                                            String apiId, String apiName, String apiContext,
+                                                            String apiVersion, ArrayList<JSONObject> apiRevisionArray,
+                                                            long sleepTime) throws InterruptedException {
         // Create new API revision
         JSONObject newApiRevision = createRevision(publisherRestUrl, accessToken, apiId);
         String newApiRevisionId = (String) newApiRevision.get("id");
-        LOGGER.info("***** New Revision created with id : " + newApiRevisionId + " for API : " + apiName + "|" + apiContext + "|" + apiVersion);
+        LOGGER.info("***** New Revision created with id : " + newApiRevisionId + " for API : " +
+                apiName + "|" + apiContext + "|" + apiVersion);
 
         // Create payload to deploy new API revision
         ArrayList<JSONObject> deployRevisionPayload = buildDeployRevisionPayload(apiRevisionArray);
         LOGGER.info("***** New Revision going to be deployed with payload : " + deployRevisionPayload.toString());
 
         // Deploy new API revision
-        ArrayList<JSONObject> newDeployedRevisionDetails = deployRevision(publisherRestUrl, accessToken, apiId, newApiRevisionId, deployRevisionPayload);
+        ArrayList<JSONObject> newDeployedRevisionDetails = deployRevision(publisherRestUrl, accessToken, apiId,
+                newApiRevisionId, deployRevisionPayload);
         Thread.sleep(sleepTime);
     }
 

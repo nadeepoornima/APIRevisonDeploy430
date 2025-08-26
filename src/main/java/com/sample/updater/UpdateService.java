@@ -204,11 +204,11 @@ public static ArrayList<JSONObject> buildDeployRevisionPayload(ArrayList<JSONObj
 
                 // Check if name = "external"
                 if ("external".equalsIgnoreCase(name)) {
-                    //customer external vhost value
-                    formattedDeployment.put("vhost", "*******");
+                    //vhost value of external GW
+                    formattedDeployment.put("vhost", "api-tst.nn-group.com");
                 } else if("internal".equalsIgnoreCase(name)) {
-                    //customer internal vhost value
-                    formattedDeployment.put("vhost", "*****");
+                    //vhost value of internal GW
+                    formattedDeployment.put("vhost", "int.api-aws.tst.insim.biz");
                 }else {
                     formattedDeployment.put("vhost", deployment.get("vhost"));
                 }
